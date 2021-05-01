@@ -142,6 +142,28 @@ impl SrcStr {
         self.try_run(|this| this.edit(f))
     }
 
+    pub fn range(&self) -> Option<Range<usize>> {
+        let outer = &self.rc[..];
+        let inner = &**self;
+
+
+        let start = outer.as_bytes() as *const [u8] as *const u8 as usize;
+        let len = outer.len();
+        let end = start + len;
+
+        let ptr = self.ptr as *const [u8] as *const u8 as usize;
+
+        if ptr < start || ptr >= end {
+            return None;
+        }
+
+        let ptr_start = ptr-start;
+        let ptr_end = ptr_start + inner.len();
+
+        Some(ptr_start..ptr_end)
+
+    }
+
     pub fn sub(&self, index: Range<usize>) -> SrcStr {
     	let mut s = self.clone();
     	s.edit(move |s| *s = &s[index]);
@@ -149,20 +171,24 @@ impl SrcStr {
     }
 }
 
+
+
+
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 
     #[test]
     fn index() {
-        let s : SrcStr = "A pair of powerful spectacles has sometimes sufficed to cure a person in love.".into();
+        let s: SrcStr = "A pair of powerful spectacles has sometimes sufficed to cure a person in love.".into();
         assert_eq!("powerful", &s[10..18]);
         assert_eq!(s, s);
     }
 
     #[test]
     fn hash() {
-    	let a : SrcStr = "Even the most courageous among us only has the courage for that which he really knows.".into();
+    	let a: SrcStr = "Even the most courageous among us only has the courage for that which he really knows.".into();
 
     	let b = a.sub(14..21);
     	let c = a.sub(47..54);
@@ -170,5 +196,18 @@ mod tests {
     	assert_eq!("courage", &b[..]);
     	assert_eq!(&b[..], &c[..]);
     	assert_ne!(b, c);
+    }
+
+    #[test]
+    fn range() {
+        let mut a: SrcStr = "Thoughts are the shadows of our feelings - always darker, emptier and simpler.".into();
+
+        a.edit(|s| *s = &s[15..18]);
+
+        assert_eq!(a.range(), Some(15..18)); 
+
+        a.edit(|s| *s = "nothing");
+
+        assert_eq!(a.range(), None);
     }
 }
