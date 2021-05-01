@@ -169,6 +169,13 @@ impl SrcStr {
     	s.edit(move |s| *s = &s[index]);
     	s
     }
+
+    pub fn src_sub(&self, index: Range<usize>) -> SrcStr {
+        let mut s = self.clone();
+        let ptr = &s.src()[index] as *const str;
+        s.ptr = ptr;
+        s
+    }
 }
 
 
