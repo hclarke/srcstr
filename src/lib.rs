@@ -1,3 +1,5 @@
+#![feature(try_trait)]
+
 use core::hash::Hash;
 use core::hash::Hasher;
 use core::ops::Deref;
@@ -5,6 +7,7 @@ use core::ops::Index;
 use core::ops::{Range, RangeFrom, RangeTo, RangeFull, RangeInclusive, RangeToInclusive };
 use std::rc::Rc;
 use core::fmt;
+use core::ops::Try;
 
 #[derive(Clone)]
 pub struct SrcStr {
@@ -112,16 +115,19 @@ impl SrcStr {
         &self.rc
     }
 
-    pub fn try_run<T, E, F>(&mut self, f: F) -> Result<T, E>
+    pub fn try_run<T, F>(&mut self, f: F) -> T
     where
-        F: FnOnce(&mut Self) -> Result<T, E>,
+        F: FnOnce(&mut Self) -> T,
+        T: Try,
     {
         let ptr = self.ptr;
-        let result = f(self);
-        if result.is_err() {
-            self.ptr = ptr;
+        match f(self).into_result() {
+            Ok(ok) => T::from_ok(ok),
+            Err(err) => {
+                self.ptr = ptr;
+                T::from_error(err)
+            },
         }
-        result
     }
 
     pub fn edit<T, F>(&mut self, f: F) -> T
